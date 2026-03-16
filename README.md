@@ -126,6 +126,12 @@ var result = await Poll
 | `Exponential` | Interval doubles each attempt |
 | `ExponentialWithJitter` | Exponential with random jitter |
 
+## Development
+
+```bash
+dotnet build src/Philiprehberger.Polling.csproj --configuration Release
+```
+
 ## License
 
 MIT
