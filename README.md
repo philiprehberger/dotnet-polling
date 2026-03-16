@@ -1,5 +1,9 @@
 # Philiprehberger.Polling
 
+[![CI](https://github.com/philiprehberger/dotnet-polling/actions/workflows/ci.yml/badge.svg)](https://github.com/philiprehberger/dotnet-polling/actions/workflows/ci.yml)
+[![NuGet](https://img.shields.io/nuget/v/Philiprehberger.Polling.svg)](https://www.nuget.org/packages/Philiprehberger.Polling)
+[![License](https://img.shields.io/github/license/philiprehberger/dotnet-polling)](LICENSE)
+
 Poll any async operation until a condition is met with configurable intervals, timeouts, and backoff strategies.
 
 ## Install
