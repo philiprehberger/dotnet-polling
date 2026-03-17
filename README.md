@@ -6,7 +6,7 @@
 
 Poll any async operation until a condition is met with configurable intervals, timeouts, and backoff strategies.
 
-## Install
+## Installation
 
 ```bash
 dotnet add package Philiprehberger.Polling
