@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.0
+
+- Add `WithMaxAttempts` to limit polling attempts independent of timeout
+- Add `PollContext` providing attempt number and elapsed time to predicates
+- Add context-aware `Until` predicate overload
+- Add `OnlyRetryOn<TException>` for exception type filtering
+
 ## 0.1.3
 
 - Add Development section to README

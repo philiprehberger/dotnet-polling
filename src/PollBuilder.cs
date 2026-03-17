@@ -35,11 +35,14 @@ public sealed class PollBuilder<T>
 {
     private readonly Func<Task<T>> _operation;
     private readonly Func<T, bool> _predicate;
+    private Func<T, PollContext, bool>? _contextPredicate;
     private TimeSpan _interval = TimeSpan.FromMilliseconds(500);
     private TimeSpan? _timeout;
+    private int? _maxAttempts;
     private BackoffStrategy _backoff = BackoffStrategy.Constant;
     private Action<T, int>? _onAttempt;
     private CancellationToken _cancellationToken = CancellationToken.None;
+    private Type? _retryOnExceptionType;
 
     internal PollBuilder(Func<Task<T>> operation, Func<T, bool> predicate)
     {
@@ -73,6 +76,47 @@ public sealed class PollBuilder<T>
             throw new ArgumentOutOfRangeException(nameof(timeout), "Timeout must be positive.");
 
         _timeout = timeout;
+        return this;
+    }
+
+    /// <summary>
+    /// Sets the maximum number of polling attempts. Polling stops after this many tries
+    /// even if the timeout hasn't been reached.
+    /// </summary>
+    /// <param name="maxAttempts">The maximum number of attempts.</param>
+    /// <returns>This builder for chaining.</returns>
+    public PollBuilder<T> WithMaxAttempts(int maxAttempts)
+    {
+        if (maxAttempts <= 0)
+            throw new ArgumentOutOfRangeException(nameof(maxAttempts), "Max attempts must be positive.");
+
+        _maxAttempts = maxAttempts;
+        return this;
+    }
+
+    /// <summary>
+    /// Poll until the predicate (with context) returns true. This overload provides
+    /// a <see cref="PollContext"/> containing attempt number, elapsed time, and the
+    /// last exception to the predicate function.
+    /// </summary>
+    /// <param name="predicate">
+    /// A function that inspects the result and polling context, returning <c>true</c> when polling should stop.
+    /// </param>
+    /// <returns>This builder for chaining.</returns>
+    public PollBuilder<T> Until(Func<T, PollContext, bool> predicate)
+    {
+        _contextPredicate = predicate ?? throw new ArgumentNullException(nameof(predicate));
+        return this;
+    }
+
+    /// <summary>
+    /// Only retry when the specified exception type is thrown. Other exceptions propagate immediately.
+    /// </summary>
+    /// <typeparam name="TException">The exception type to retry on.</typeparam>
+    /// <returns>This builder for chaining.</returns>
+    public PollBuilder<T> OnlyRetryOn<TException>() where TException : Exception
+    {
+        _retryOnExceptionType = typeof(TException);
         return this;
     }
 
@@ -145,7 +189,18 @@ public sealed class PollBuilder<T>
 
                 _onAttempt?.Invoke(lastValue, attempt);
 
-                if (_predicate(lastValue))
+                var context = new PollContext
+                {
+                    AttemptNumber = attempt,
+                    Elapsed = sw.Elapsed,
+                    LastException = lastException
+                };
+
+                var satisfied = _contextPredicate is not null
+                    ? _contextPredicate(lastValue, context)
+                    : _predicate(lastValue);
+
+                if (satisfied)
                 {
                     sw.Stop();
                     return new PollResult<T>(true, lastValue, attempt, sw.Elapsed, null);
@@ -155,9 +210,15 @@ public sealed class PollBuilder<T>
             {
                 throw;
             }
-            catch (Exception ex)
+            catch (Exception ex) when (_retryOnExceptionType is null || _retryOnExceptionType.IsInstanceOfType(ex))
             {
                 lastException = ex;
+            }
+
+            if (_maxAttempts.HasValue && attempt >= _maxAttempts.Value)
+            {
+                sw.Stop();
+                return new PollResult<T>(false, lastValue, attempt, sw.Elapsed, lastException);
             }
 
             var delay = ComputeDelay(attempt);
@@ -209,6 +270,7 @@ public sealed class PollBuilder
     private BackoffStrategy _backoff = BackoffStrategy.Constant;
     private Action<int>? _onAttempt;
     private CancellationToken _cancellationToken = CancellationToken.None;
+    private Type? _retryOnExceptionType;
 
     internal PollBuilder(Func<Task> operation)
     {
@@ -293,6 +355,17 @@ public sealed class PollBuilder
     }
 
     /// <summary>
+    /// Only retry when the specified exception type is thrown. Other exceptions propagate immediately.
+    /// </summary>
+    /// <typeparam name="TException">The exception type to retry on.</typeparam>
+    /// <returns>This builder for chaining.</returns>
+    public PollBuilder OnlyRetryOn<TException>() where TException : Exception
+    {
+        _retryOnExceptionType = typeof(TException);
+        return this;
+    }
+
+    /// <summary>
     /// Executes the polling loop asynchronously. The operation succeeds when it
     /// completes without throwing an exception.
     /// </summary>
@@ -332,7 +405,7 @@ public sealed class PollBuilder
             {
                 throw;
             }
-            catch (Exception ex)
+            catch (Exception ex) when (_retryOnExceptionType is null || _retryOnExceptionType.IsInstanceOfType(ex))
             {
                 lastException = ex;
             }

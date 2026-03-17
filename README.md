@@ -59,6 +59,55 @@ var result = await Poll
 .WithBackoff(BackoffStrategy.ExponentialWithJitter)
 ```
 
+### Max Attempts
+
+Limit polling to a fixed number of attempts, independent of timeout:
+
+```csharp
+var result = await Poll
+    .Until(
+        async () => await client.GetJobStatusAsync(jobId),
+        status => status == "done")
+    .Every(TimeSpan.FromSeconds(1))
+    .WithMaxAttempts(10)
+    .ExecuteAsync();
+
+if (!result.Succeeded)
+    Console.WriteLine($"Gave up after {result.Attempts} attempts");
+```
+
+### Polling Context
+
+Use a context-aware predicate to access attempt metadata:
+
+```csharp
+var result = await Poll
+    .Until(
+        async () => await GetValueAsync(),
+        (value, context) =>
+        {
+            Console.WriteLine($"Attempt {context.AttemptNumber}, elapsed {context.Elapsed}");
+            return value > 100;
+        })
+    .Every(TimeSpan.FromSeconds(1))
+    .ExecuteAsync();
+```
+
+The `PollContext` provides `AttemptNumber` (1-based), `Elapsed` time, and `LastException`.
+
+### Exception Filtering
+
+Only retry on specific exception types; other exceptions propagate immediately:
+
+```csharp
+var result = await Poll
+    .Until(async () => await db.PingAsync())
+    .Every(TimeSpan.FromSeconds(1))
+    .OnlyRetryOn<TimeoutException>()
+    .WithTimeout(TimeSpan.FromSeconds(30))
+    .ExecuteAsync();
+```
+
 ### Observability
 
 ```csharp
@@ -93,6 +142,7 @@ var result = await Poll
 | Method | Description |
 |--------|-------------|
 | `Until<T>(Func<Task<T>>, Func<T, bool>)` | Create a poll builder that checks a predicate against returned values |
+| `Until<T>(Func<Task<T>>, Func<T, PollContext, bool>)` | Create a poll builder with a context-aware predicate |
 | `Until(Func<Task>)` | Create a poll builder for a side-effect operation that succeeds when it stops throwing |
 
 ### `PollBuilder<T>` / `PollBuilder`
@@ -101,10 +151,21 @@ var result = await Poll
 |--------|-------------|
 | `Every(TimeSpan)` | Set the base interval between attempts (default 500 ms) |
 | `WithTimeout(TimeSpan)` | Set the maximum total polling duration |
+| `WithMaxAttempts(int)` | Set the maximum number of polling attempts |
+| `Until(Func<T, PollContext, bool>)` | Set a context-aware predicate (`PollBuilder<T>` only) |
 | `WithBackoff(BackoffStrategy)` | Set the backoff strategy (default Constant) |
+| `OnlyRetryOn<TException>()` | Only retry on the specified exception type |
 | `OnAttempt(Action<T, int>)` | Register a callback after each attempt |
 | `WithCancellation(CancellationToken)` | Provide a cancellation token |
 | `ExecuteAsync()` | Run the poll loop and return a `PollResult<T>` |
+
+### `PollContext`
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `AttemptNumber` | `int` | Number of attempts made so far (1-based) |
+| `Elapsed` | `TimeSpan` | Total time elapsed since polling started |
+| `LastException` | `Exception?` | The last exception encountered, if any |
 
 ### `PollResult<T>`
 
