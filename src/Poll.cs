@@ -1,7 +1,7 @@
 namespace Philiprehberger.Polling;
 
 /// <summary>
-/// Static entry point for creating polling operations. Use <see cref="Until{T}"/>
+/// Static entry point for creating polling operations. Use <see cref="Until{T}(Func{Task{T}}, Func{T, bool})"/>
 /// to poll an async operation until a predicate is satisfied, or <see cref="Until"/>
 /// to poll a side-effect operation until it completes without throwing.
 /// </summary>
