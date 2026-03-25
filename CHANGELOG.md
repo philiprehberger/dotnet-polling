@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.3 (2026-03-24)
+
+- Sync .csproj description with README
+
 ## 0.2.2 (2026-03-22)
 
 - Add dates to changelog entries
