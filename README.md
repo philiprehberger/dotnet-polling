@@ -3,6 +3,7 @@
 [![CI](https://github.com/philiprehberger/dotnet-polling/actions/workflows/ci.yml/badge.svg)](https://github.com/philiprehberger/dotnet-polling/actions/workflows/ci.yml)
 [![NuGet](https://img.shields.io/nuget/v/Philiprehberger.Polling.svg)](https://www.nuget.org/packages/Philiprehberger.Polling)
 [![License](https://img.shields.io/github/license/philiprehberger/dotnet-polling)](LICENSE)
+[![Sponsor](https://img.shields.io/badge/sponsor-GitHub%20Sponsors-ec6cb9)](https://github.com/sponsors/philiprehberger)
 
 Poll any async operation until a condition is met with configurable intervals, timeouts, and backoff strategies.
 
@@ -195,4 +196,4 @@ dotnet build src/Philiprehberger.Polling.csproj --configuration Release
 
 ## License
 
-MIT
+[MIT](LICENSE)
