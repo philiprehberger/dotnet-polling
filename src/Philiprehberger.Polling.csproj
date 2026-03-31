@@ -7,7 +7,7 @@
     <LangVersion>latest</LangVersion>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <PackageId>Philiprehberger.Polling</PackageId>
-    <Version>0.2.4</Version>
+    <Version>0.2.5</Version>
     <Authors>Philip Rehberger</Authors>
     <Description>Poll any async operation until a condition is met with configurable intervals, timeouts, and backoff strategies.</Description>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
